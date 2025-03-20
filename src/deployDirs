@@ -1,0 +1,108 @@
+#!/bin/bash
+
+# 该脚本用于在 Android 项目中创建指定的目录结构
+# 在项目根目录下执行该脚本，会自动搜索 com/ 目录下的子目录，并确定目标工作目录
+# 例如 ~/develop/android/Mario$ deployDirs
+# 适用于常规目录命名规范，如 com/wavky/myproject
+# 创建以下目录结构：
+# .
+# ├── app
+# │   └── common
+# │       ├── res
+# │       └── ui
+# ├── domain
+# │   ├── infra
+# │   │   ├── api
+# │   │   │   ├── request
+# │   │   │   └── response
+# │   │   ├── db
+# │   │   │   ├── dao
+# │   │   │   └── entity
+# │   │   └── kv
+# │   ├── model
+# │   └── repository
+# └── usecase
+
+
+# 获取当前项目根目录名称（忽略大小写）
+PROJECT_NAME=$(basename "$PWD")
+
+# 确保脚本在项目根目录执行
+COM_DIR="app/src/main/java/com"
+
+# 1. 查找 com/ 目录下的唯一子目录（如 wavky）
+ORG_DIR=$(find "$COM_DIR" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+
+# 如果未找到唯一子目录，则报错退出
+if [[ -z "$ORG_DIR" ]]; then
+  echo "错误：未找到 com/ 目录下的唯一子目录。"
+  exit 1
+fi
+
+# 2. 递归查找唯一子目录下的所有子目录
+SUB_DIRS=($(find "$ORG_DIR" -mindepth 1 -type d | sort))
+
+# 如果没有更深层的子目录，报错退出
+if [[ ${#SUB_DIRS[@]} -eq 0 ]]; then
+  echo "错误：未找到 ${ORG_DIR} 下的更深层子目录。"
+  exit 1
+fi
+
+# 3. 检查是否有与项目名匹配的子目录（忽略大小写）
+AUTO_SELECTED_DIR=""
+for dir in "${SUB_DIRS[@]}"; do
+  DIR_NAME=$(basename "$dir")
+  # 使用 tr 命令将目录名和项目名转换为小写后比较
+  if [[ "$(echo "$DIR_NAME" | tr '[:upper:]' '[:lower:]')" == "$(echo "$PROJECT_NAME" | tr '[:upper:]' '[:lower:]')" ]]; then
+    AUTO_SELECTED_DIR="$dir"
+    break
+  fi
+done
+
+# 4. 如果找到了匹配的目录，就直接选择它
+if [[ -n "$AUTO_SELECTED_DIR" ]]; then
+  PACKAGE_DIR="$AUTO_SELECTED_DIR"
+  echo "检测到匹配项目名的目录，已自动选择：$PACKAGE_DIR"
+else
+  # 5. 否则列出所有可选目录
+  echo "请选择目标目录："
+  for i in "${!SUB_DIRS[@]}"; do
+    echo "[$i] ${SUB_DIRS[$i]}"
+  done
+
+  # 6. 让用户输入选择的目录编号
+  read -p "输入数字选择目录: " choice
+
+  # 判断输入是否有效
+  if [[ ! "$choice" =~ ^[0-9]+$ ]] || (( choice < 0 || choice >= ${#SUB_DIRS[@]} )); then
+    echo "错误：无效的选择。"
+    exit 1
+  fi
+
+  # 7. 获取用户选择的目标目录
+  PACKAGE_DIR="${SUB_DIRS[$choice]}"
+fi
+
+echo "目标目录：$PACKAGE_DIR"
+
+# 8. 定义需要创建的目录结构
+dirs=(
+  "app/common/res"
+  "app/common/ui"
+  "domain/infra/api/request"
+  "domain/infra/api/response"
+  "domain/infra/db/dao"
+  "domain/infra/db/entity"
+  "domain/infra/kv"
+  "domain/model"
+  "domain/repository"
+  "usecase"
+)
+
+# 9. 在 PACKAGE_DIR 下创建目录
+for dir in "${dirs[@]}"; do
+  mkdir -p "$PACKAGE_DIR/$dir"
+done
+
+echo "目录结构创建完成。"
+tree "$PACKAGE_DIR"

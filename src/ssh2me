@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# 该脚本用于在个人和公司 Git 账号之间切换
+# 在任意目录下执行该脚本，会自动切换 SSH 配置和 Git 用户信息
+
+# 个人的 Git 用户名、邮箱和 SSH 密钥
+USER_NAME_PERSONAL="<personal-name>"
+USER_EMAIL_PERSONAL="<personal-email>"
+SSH_KEY_PERSONAL="~/.ssh/id_rsa_personal"
+
+# 公司的 Git 用户名、邮箱和 SSH 密钥
+USER_NAME_COMPANY="<company-name>"
+USER_EMAIL_COMPANY="<company-email>"
+SSH_KEY_COMPANY="~/.ssh/id_rsa_company"
+
+# 系统 SSH 配置文件路径（一般不需要修改）
+CONFIG_FILE="$HOME/.ssh/config"
+
+toggle_ssh_config() {
+    local mode=$1
+    if [ "$mode" == "on" ]; then
+        sed -i '' -E "s|^[[:space:]]*#[[:space:]]*IdentityFile[[:space:]]+$SSH_KEY_PERSONAL|    IdentityFile $SSH_KEY_PERSONAL|" "$CONFIG_FILE"
+        sed -i '' -E "s|^[[:space:]]*IdentityFile[[:space:]]+$SSH_KEY_COMPANY|    # IdentityFile $SSH_KEY_COMPANY|" "$CONFIG_FILE"
+        
+        git config --global user.name "$USER_NAME_PERSONAL"
+        git config --global user.email "$USER_EMAIL_PERSONAL"
+    elif [ "$mode" == "off" ]; then
+        sed -i '' -E "s|^[[:space:]]*IdentityFile[[:space:]]+$SSH_KEY_PERSONAL|    # IdentityFile $SSH_KEY_PERSONAL|" "$CONFIG_FILE"
+        sed -i '' -E "s|^[[:space:]]*#[[:space:]]*IdentityFile[[:space:]]+$SSH_KEY_COMPANY|    IdentityFile $SSH_KEY_COMPANY|" "$CONFIG_FILE"
+        
+        git config --global user.name "$USER_NAME_COMPANY"
+        git config --global user.email "$USER_EMAIL_COMPANY"
+    else
+        echo "Usage: ssh2me on|off"
+        current_user=$(git config --global user.name)
+        current_email=$(git config --global user.email)
+        if [ "$current_user" == "$USER_NAME_PERSONAL" ] && [ "$current_email" == "$USER_EMAIL_PERSONAL" ]; then
+            echo "Current User: $USER_NAME_PERSONAL"
+        elif [ "$current_user" == "$USER_NAME_COMPANY" ] && [ "$current_email" == "$USER_EMAIL_COMPANY" ]; then
+            echo "Current User: $USER_NAME_COMPANY"
+        else
+            echo "Current User: $current_user ($current_email)"
+        fi
+        exit 0
+    fi
+    
+    echo "SSH config and Git user info updated. ssh-agent restarted."
+    if [ "$mode" == "on" ]; then
+        echo "Current User: $USER_NAME_PERSONAL"
+    else
+        echo "Current User: $USER_NAME_COMPANY"
+    fi
+
+    ssh -T git@github.com
+}
+
+toggle_ssh_config "$1"
