@@ -4,11 +4,23 @@
 
 也可以参考主站文章中的说明： [我的一些工作小技巧](https://wavky.top/MyTricks/#%E5%88%87%E6%8D%A2%E5%85%AC%E7%A7%81-Git-%E7%8E%AF%E5%A2%83%EF%BC%9ASSH-%E7%A7%98%E9%92%A5%E4%B8%8E-Git-%E7%94%A8%E6%88%B7%E4%BF%A1%E6%81%AF)
 
-## 将文件命令化
-下载文件后（例如文件名为 tool），执行这些命令将其命令化，并放置到系统命令目录中
+## 将脚本文件命令化
+下载脚本文件后（例如文件名为 tool），执行这些命令将其命令化，并放置到系统命令目录中
 ```sh
 chmod +x tool
 sudo cp tool /usr/local/bin/
+
+# 刷新命令缓存，触发重新索引
+hash -r
+```
+
+或者将用户目录中自定义的命令目录放入环境变量 `PATH` 中，这样就不再需要通过 sudo 将命令放入系统目录
+```sh
+# 将这行放入 .zshrc 或 .bash_profile 中
+export PATH=$PATH:~/develop/command
+
+chmod +x tool
+cp tool ~/develop/command
 
 # 刷新命令缓存，触发重新索引
 hash -r
@@ -71,4 +83,22 @@ ssh2me off # 切换到公司环境
 │   ├── model
 │   └── repository
 └── usecase
+```
+
+## apkversion 打印 APK 文件的版本号
+[apkversion](/src/apkversion)
+
+该脚本用于打印 APK 文件的版本号，会自动搜索 `/Library/Android/sdk/build-tools` 中最新版本的 `aapt` 命令，然后使用它打印 APK 文件的版本号。
+
+使用方式：
+```sh
+apkversion path/to/file.apk # 输出 APK 文件版本号: 1.0.0
+```
+
+## keytool 打印 APK 签名
+
+这部分不是自制工具，是 Java 自带的工具，仅作备忘。
+
+```sh
+keytool -printcert -jarfile path/to/file.apk
 ```

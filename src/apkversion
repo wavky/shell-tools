@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# 获取最新的 build-tools 版本
+build_tools_dir="$HOME/Library/Android/sdk/build-tools"
+latest_version=$(ls -1 "$build_tools_dir" | sort -V | tail -n 1)
+
+# 设置 aapt 路径
+aapt_path="$build_tools_dir/$latest_version/aapt"
+
+# 检查 aapt 是否存在
+if [[ ! -f "$aapt_path" ]]; then
+  echo "未找到 aapt 工具，检查 Android SDK 是否正确安装。"
+  exit 1
+fi
+
+# 获取 APK 文件版本号
+apk_file="$1"
+aapt_output=$("$aapt_path" dump badging "$apk_file" | grep versionName)
+version_name=$(echo "$aapt_output" | sed -E "s/.*versionName='([^']+)'.*/\1/")
+
+echo "APK 文件版本号: $version_name"
